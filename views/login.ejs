@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Easy Invest — Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-br from-indigo-900 via-slate-800 to-slate-700 min-h-screen flex items-center justify-center text-slate-100">
+    <div class="max-w-md w-full p-8 bg-white/5 rounded-2xl shadow-lg">
+      <div class="flex items-center gap-3 mb-6">
+        <img src="/logo.svg" alt="Easy Invest" class="w-12 h-12" />
+        <h1 class="text-2xl font-bold">Easy Invest</h1>
+      </div>
+
+      <% if (error) { %>
+        <div class="bg-red-600/30 p-3 rounded mb-4"><%= error %></div>
+      <% } %>
+
+      <form method="post" action="/login" class="space-y-4">
+        <input name="login" placeholder="Email, username or phone" class="w-full p-3 rounded bg-white/5" />
+        <input name="password" type="password" placeholder="Password" class="w-full p-3 rounded bg-white/5" />
+        <div class="flex justify-between items-center text-sm">
+          <a href="#" onclick="openForgot()" class="text-indigo-300">Forgot password?</a>
+          <button class="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded">Login</button>
+        </div>
+      </form>
+
+      <p class="mt-6 text-center text-slate-300">Don't have an account yet? <a href="/signup" class="text-indigo-300 font-semibold">Sign up</a></p>
+
+      <script>
+        function openForgot(){
+          const email = prompt('Enter your email for password reset (demo)');
+          if (!email) return;
+          fetch('/forgot', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) }).then(r=>r.json()).then(j=>alert(j.msg));
+        }
+      </script>
+    </div>
+  </body>
+</html>
