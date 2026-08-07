@@ -82,7 +82,8 @@ function requireAdmin(req, res, next){
     if (!rows.length) {
       const hashed = await bcrypt.hash(adminPass, 10);
       const ref_code = uuidv4().slice(0,8);
-      await run('INSERT INTO users (fullname, username, email, phone, password, wallet, ref_code, parent_ref, is_admin, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)', ['Admin User', 'admin', adminEmail, '', hashed, 0, ref_code, null, 1, Date.now()]);
+      const now = Date.now();
+      await run('INSERT INTO users (fullname, username, email, phone, password, wallet, ref_code, parent_ref, is_admin, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)', ['Admin User', 'admin', adminEmail, '', hashed, 0, ref_code, null, 1, now]);
       console.log('Seeded admin user:', adminEmail);
     } else {
       // ensure is_admin flag
@@ -116,18 +117,26 @@ app.get('/', (req, res) => {
   res.render('login', { error: null });
 });
 
+// Signup: allow referral via query param ?ref=CODE
 app.get('/signup', (req, res) => {
-  res.render('signup', { error: null });
+  res.render('signup', { error: null, ref: req.query.ref || '' });
+});
+
+// Referral redirect route: /refer/:code -> /signup?ref=code
+app.get('/refer/:code', (req, res) => {
+  const code = req.params.code;
+  if (!code) return res.redirect('/signup');
+  res.redirect('/signup?ref=' + encodeURIComponent(code));
 });
 
 app.post('/signup', async (req, res) => {
   const { fullname, username, email, phone, password, password2, ref } = req.body;
-  if (!fullname || !username || !email || !password || !password2) return res.render('signup', { error: 'Please fill required fields' });
-  if (password !== password2) return res.render('signup', { error: 'Passwords do not match' });
+  if (!fullname || !username || !email || !password || !password2) return res.render('signup', { error: 'Please fill required fields', ref: ref || '' });
+  if (password !== password2) return res.render('signup', { error: 'Passwords do not match', ref: ref || '' });
 
   // check duplicates
   const dup = await query('SELECT id FROM users WHERE username = ? OR email = ? OR phone = ?', [username, email, phone]);
-  if (dup.length) return res.render('signup', { error: 'Username, email or phone already registered' });
+  if (dup.length) return res.render('signup', { error: 'Username, email or phone already registered', ref: ref || '' });
 
   const hashed = await bcrypt.hash(password, 10);
   const ref_code = uuidv4().slice(0,8);
@@ -295,6 +304,46 @@ app.post('/profile/update', requireAuth, async (req,res)=>{
   if (dup.length) return res.render('dashboard', { error: 'Username or email already registered' });
   await run('UPDATE users SET username = ?, email = ?, last_profile_update = ? WHERE id = ?', [username, email, now, u.id]);
   res.redirect('/dashboard');
+});
+
+// Password update endpoint: POST /profile/password
+app.post('/profile/password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword || !newPassword || !confirmPassword) return res.redirect('/profile?msg=' + encodeURIComponent('Please fill all fields'));
+    if (newPassword !== confirmPassword) return res.redirect('/profile?msg=' + encodeURIComponent('New passwords do not match'));
+    const rows = await query('SELECT * FROM users WHERE id = ?', [req.session.user.id]);
+    if (!rows.length) return res.redirect('/profile?msg=' + encodeURIComponent('User not found'));
+    const user = rows[0];
+    const ok = await bcrypt.compare(currentPassword, user.password);
+    if (!ok) return res.redirect('/profile?msg=' + encodeURIComponent('Current password is incorrect'));
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await run('UPDATE users SET password = ? WHERE id = ?', [hashed, user.id]);
+    res.redirect('/profile?msg=' + encodeURIComponent('Password updated successfully'));
+  } catch (e) {
+    console.error('Password update error', e);
+    res.redirect('/profile?msg=' + encodeURIComponent('Error updating password'));
+  }
+});
+
+// Profile page
+app.get('/profile', requireAuth, async (req, res) => {
+  const user = await query('SELECT * FROM users WHERE id = ?', [req.session.user.id]);
+  const u = user[0];
+  res.render('profile', { user: u, msg: req.query.msg || null });
+});
+
+// Wallet page
+app.get('/wallet', requireAuth, async (req, res) => {
+  const user = await query('SELECT * FROM users WHERE id = ?', [req.session.user.id]);
+  const deposits = await query('SELECT * FROM deposits WHERE user_id = ? ORDER BY created_at DESC', [req.session.user.id]);
+  const withdraws = await query('SELECT * FROM withdraws WHERE user_id = ? ORDER BY created_at DESC', [req.session.user.id]);
+  res.render('wallet', { user: user[0], deposits, withdraws });
+});
+
+// Packages page
+app.get('/packages', requireAuth, async (req, res) => {
+  res.render('packages', { user: req.session.user, packages: PACKAGES });
 });
 
 // Refund request
