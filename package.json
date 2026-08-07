@@ -1,0 +1,24 @@
+{
+  "name": "easyinvest",
+  "version": "1.1.0",
+  "description": "Easy Invest - simple investment demo app (cPanel-ready)",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.0",
+    "connect-sqlite3": "^0.9.0",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.2",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.0"
+  }
+}
