@@ -24,7 +24,8 @@
         <input name="phone" placeholder="Phone number" class="w-full p-3 rounded bg-white/5" />
         <input name="password" type="password" placeholder="Password" class="w-full p-3 rounded bg-white/5" />
         <input name="password2" type="password" placeholder="Verify password" class="w-full p-3 rounded bg-white/5" />
-        <input name="ref" placeholder="Referral code (optional)" class="w-full p-3 rounded bg-white/5" />
+        <!-- prefill referral from server-provided ref variable (app.js passes ref) -->
+        <input name="ref" placeholder="Referral code (optional)" value="<%= ref || '' %>" class="w-full p-3 rounded bg-white/5" />
         <div class="flex justify-between items-center text-sm">
           <a href="/" class="text-indigo-300">Already have an account? Login</a>
           <button class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded">Sign up</button>
